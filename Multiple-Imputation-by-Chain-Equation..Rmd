@@ -1,0 +1,88 @@
+---
+title: "Multiple imputation by Chain Equation"
+author: "Joshua Edefo"
+date: "2024-01-09"
+email: "edefojoshua2000@yahoo.com"
+output: github_document
+---
+Libraries
+```{r a, message=FALSE}
+library(mice)
+library(readxl)
+```
+Importing data
+```{r b}
+
+e <- read.csv("C:/Users/joe62/OneDrive - Aberystwyth University/Apps/Desktop/R code/e.csv")
+head(e)
+```
+ Preparing the data for multiple imputation
+
+```{r c}
+
+# check the type of variable and use the appropraite imputation method 9factor varaible and numeric variable)
+str(e) 
+
+# check the pattern of missing data
+summary(e)
+md.pattern(e)
+
+```
+Reression analysis
+
+```{r d}
+# ordinary regression with listwise exclusion of missing data
+
+reg.fit<-lm(qol~ n_med + n_epil + adh, data = e)
+summary(reg.fit)
+
+## step 1, imputing data
+
+# m = no of imputations which is normally not less than the percentage of missing date, maxit = maximum no of iterations, 
+#seed is to ensure than when you run the same number you get the same results, print = FALSE to avoid unncessary data 
+
+imp.data <- mice(data = e, m= 50, maxit = 10, seed= 12345, print = FALSE )
+
+imp.data
+
+# checking if covergence was achieved, wahat we do want to see a trend of mean constanly going down or up, if that occurs increase the number of iterations
+plot (imp.data )
+
+# checking if imputed has a plausible values, imputed values should align with real data from sample
+stripplot(imp.data)
+
+#continuous variable use pmm, while for binary variable is logreg
+
+
+## step 2, running regressions, no of imputations is equal to number of regressions
+# imputed data sets
+
+imp.datasets<- complete(imp.data, "long")
+
+imp.datasets
+# regression for each imputed dataset
+
+reg.fit.mi<- with(imp.data, lm(qol~ n_med + n_epil + adh))
+reg.fit.mi
+
+# we wil the number of differnt regression results, if you want to look at one of the regression results in detail then
+ summary(reg.fit.mi$analyses[[3]])
+ 
+#step 3 pooling the regressions results into 1 result
+ 
+ pool.fit <- pool(reg.fit.mi)
+ 
+ pool.fit
+ 
+ summary(pool.fit)
+ 
+ ?mipo
+ 
+ pool.r2<-pool.r.squared(reg.fit.mi)
+
+```
+
+Session information
+```{r e, messaege = FALSE}
+sessionInfo()
+```
